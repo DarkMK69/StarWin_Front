@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telegram Star Battle</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="/static/css/main.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <div class="balance-container">
+                <span class="balance">1000</span>
+                <img src="/static/images/star-icon.png" alt="Stars" class="currency-icon">
+            </div>
+            <h1>Star Battle</h1>
+            <div class="user-avatar">
+                <img id="user-avatar" src="" alt="User">
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div class="battle-types">
+                <div class="battle-type active" data-type="quick">
+                    <h3>Быстрая битва</h3>
+                    <p>1v1 · 50 звёзд</p>
+                </div>
+                <div class="battle-type" data-type="premium">
+                    <h3>Премиум битва</h3>
+                    <p>3 players · 150 звёзд</p>
+                </div>
+                <div class="battle-type" data-type="elite">
+                    <h3>Элитная битва</h3>
+                    <p>5 players · 500 звёзд</p>
+                </div>
+            </div>
+
+            <button id="start-battle" class="main-button">
+                Начать битву
+            </button>
+
+            <div class="recent-battles">
+                <h2>Последние битвы</h2>
+                <div class="battles-list">
+                    <!-- Будет заполняться через JS -->
+                </div>
+            </div>
+        </main>
+
+        <nav class="bottom-nav">
+            <button class="nav-button active" data-page="home">
+                <i class="icon-home"></i>
+                Главная
+            </button>
+            <button class="nav-button" data-page="battle">
+                <i class="icon-battle"></i>
+                Битва
+            </button>
+            <button class="nav-button" data-page="inventory">
+                <i class="icon-inventory"></i>
+                NFT
+            </button>
+            <button class="nav-button" data-page="profile">
+                <i class="icon-profile"></i>
+                Профиль
+            </button>
+        </nav>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
