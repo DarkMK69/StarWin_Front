@@ -1,73 +1,233 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
-    <meta charset="UTF-8">
+    <title>NFT Stars Battle</title>
+    <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Telegram Star Battle</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <link rel="stylesheet" href="/static/css/main.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #1e1e2e;
+            color: white;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 100%;
+            padding: 10px;
+        }
+        .case {
+            background: #2e2e3e;
+            border-radius: 15px;
+            padding: 15px;
+            margin: 10px 0;
+            text-align: center;
+        }
+        .case-image {
+            width: 150px;
+            height: 150px;
+            margin: 0 auto;
+            background: #3e3e4e;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 50px;
+        }
+        .battle-area {
+            display: flex;
+            justify-content: space-between;
+            margin: 20px 0;
+        }
+        .player-area {
+            width: 48%;
+            background: #2e2e3e;
+            border-radius: 15px;
+            padding: 10px;
+            text-align: center;
+        }
+        button {
+            background: #5a67d8;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-weight: bold;
+            margin: 5px;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
-    <div class="app-container">
-        <header class="app-header">
-            <div class="balance-container">
-                <span class="balance">1000</span>
-                <img src="/static/images/star-icon.png" alt="Stars" class="currency-icon">
+    <div class="container" id="app">
+        <h1>NFT Stars Battle</h1>
+        
+        <div v-if="view === 'main'">
+            <div class="balance">Баланс: {{ balance }} 💎</div>
+            
+            <button @click="switchView('battle')">🎮 Начать баттл</button>
+            <button @click="switchView('shop')">🛍️ Магазин кейсов</button>
+            <button @click="switchView('inventory')">🎒 Мой инвентарь</button>
+        </div>
+        
+        <div v-if="view === 'shop'">
+            <h2>Магазин кейсов</h2>
+            
+            <div class="case" @click="openCase('stars')">
+                <div class="case-image">🌟</div>
+                <h3>Кейс звезд Telegram</h3>
+                <p>500 💎</p>
+                <button>Купить</button>
             </div>
-            <h1>Star Battle</h1>
-            <div class="user-avatar">
-                <img id="user-avatar" src="" alt="User">
+            
+            <div class="case" @click="openCase('nft')">
+                <div class="case-image">🖼️</div>
+                <h3>NFT кейс</h3>
+                <p>750 💎</p>
+                <button>Купить</button>
             </div>
-        </header>
-
-        <main class="main-content">
-            <div class="battle-types">
-                <div class="battle-type active" data-type="quick">
-                    <h3>Быстрая битва</h3>
-                    <p>1v1 · 50 звёзд</p>
+            
+            <button @click="switchView('main')">Назад</button>
+        </div>
+        
+        <div v-if="view === 'battle'">
+            <h2>Выберите режим баттла</h2>
+            
+            <button @click="startBattle('1v1')">1 vs 1</button>
+            <button @click="startBattle('tournament')">Турнир (5 игроков)</button>
+            
+            <div v-if="battleActive" class="battle-area">
+                <div class="player-area">
+                    <h3>Вы</h3>
+                    <div v-if="yourReward">
+                        <div class="case-image">{{ yourReward.emoji }}</div>
+                        <p>{{ yourReward.name }}</p>
+                        <p>Редкость: {{ yourReward.rarity }}</p>
+                    </div>
+                    <button v-else @click="openCase('battle')">Открыть кейс</button>
                 </div>
-                <div class="battle-type" data-type="premium">
-                    <h3>Премиум битва</h3>
-                    <p>3 players · 150 звёзд</p>
-                </div>
-                <div class="battle-type" data-type="elite">
-                    <h3>Элитная битва</h3>
-                    <p>5 players · 500 звёзд</p>
+                
+                <div class="player-area">
+                    <h3>Оппонент</h3>
+                    <div v-if="opponentReward">
+                        <div class="case-image">{{ opponentReward.emoji }}</div>
+                        <p>{{ opponentReward.name }}</p>
+                        <p>Редкость: {{ opponentReward.rarity }}</p>
+                    </div>
+                    <div v-else>Ожидание...</div>
                 </div>
             </div>
-
-            <button id="start-battle" class="main-button">
-                Начать битву
-            </button>
-
-            <div class="recent-battles">
-                <h2>Последние битвы</h2>
-                <div class="battles-list">
-                    <!-- Будет заполняться через JS -->
-                </div>
+            
+            <button @click="switchView('main')">Назад</button>
+        </div>
+        
+        <div v-if="view === 'inventory'">
+            <h2>Мой инвентарь</h2>
+            
+            <div v-for="item in inventory" class="case">
+                <div class="case-image">{{ item.emoji }}</div>
+                <h3>{{ item.name }}</h3>
+                <p>Редкость: {{ item.rarity }}</p>
+                <button @click="sellItem(item)">Продать ({{ item.price }} 💎)</button>
             </div>
-        </main>
-
-        <nav class="bottom-nav">
-            <button class="nav-button active" data-page="home">
-                <i class="icon-home"></i>
-                Главная
-            </button>
-            <button class="nav-button" data-page="battle">
-                <i class="icon-battle"></i>
-                Битва
-            </button>
-            <button class="nav-button" data-page="inventory">
-                <i class="icon-inventory"></i>
-                NFT
-            </button>
-            <button class="nav-button" data-page="profile">
-                <i class="icon-profile"></i>
-                Профиль
-            </button>
-        </nav>
+            
+            <button @click="switchView('main')">Назад</button>
+        </div>
     </div>
 
-    <script src="/static/js/app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"></script>
+    <script>
+        const { createApp, ref } = Vue;
+        
+        createApp({
+            setup() {
+                const view = ref('main');
+                const balance = ref(1000);
+                const inventory = ref([]);
+                const battleActive = ref(false);
+                const yourReward = ref(null);
+                const opponentReward = ref(null);
+                
+                // Инициализация Telegram WebApp
+                const tg = window.Telegram.WebApp;
+                tg.expand();
+                tg.BackButton.onClick(() => {
+                    if (view.value !== 'main') {
+                        view.value = 'main';
+                        tg.BackButton.hide();
+                    }
+                });
+                
+                function switchView(newView) {
+                    view.value = newView;
+                    if (newView !== 'main') {
+                        tg.BackButton.show();
+                    } else {
+                        tg.BackButton.hide();
+                    }
+                }
+                
+                function openCase(type) {
+                    // В реальном приложении здесь будет запрос к бэкенду
+                    const cases = {
+                        stars: [
+                            { emoji: '🌟', name: 'Карточка Дурова', rarity: 'Легендарная', price: 2000 },
+                            { emoji: '🌟', name: 'Иван Глушков', rarity: 'Редкая', price: 800 }
+                        ],
+                        nft: [
+                            { emoji: '🖼️', name: 'Золотой стикер', rarity: 'Эпическая', price: 1500 }
+                        ]
+                    };
+                    
+                    const reward = cases[type][Math.floor(Math.random() * cases[type].length)];
+                    
+                    // Обновляем баланс и инвентарь
+                    const casePrices = { stars: 500, nft: 750 };
+                    balance.value -= casePrices[type];
+                    inventory.value.push(reward);
+                    
+                    // Если это баттл - сохраняем награду
+                    if (view.value === 'battle') {
+                        yourReward.value = reward;
+                        // Здесь будет логика проверки результата баттла
+                    } else {
+                        // Показываем попап с выигрышем
+                        tg.showPopup({
+                            title: 'Поздравляем!',
+                            message: `Вы получили: ${reward.name} (${reward.rarity})`,
+                            buttons: [{ type: 'close' }]
+                        });
+                    }
+                }
+                
+                function startBattle(type) {
+                    battleActive.value = true;
+                    yourReward.value = null;
+                    opponentReward.value = null;
+                    
+                    // В реальном приложении здесь будет подключение к matchmaking
+                }
+                
+                function sellItem(item) {
+                    balance.value += item.price;
+                    inventory.value = inventory.value.filter(i => i !== item);
+                }
+                
+                return {
+                    view,
+                    balance,
+                    inventory,
+                    battleActive,
+                    yourReward,
+                    opponentReward,
+                    switchView,
+                    openCase,
+                    startBattle,
+                    sellItem
+                };
+            }
+        }).mount('#app');
+    </script>
 </body>
 </html>
