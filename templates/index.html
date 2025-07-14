@@ -4,52 +4,7 @@
     <title>NFT Stars Battle</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://telegram.org/js/telegram-web-app.js">
-        // Внутри setup() Vue 3:
-const tg = window.Telegram.WebApp;
-const user_id = tg.initDataUnsafe.user?.id || 123; // Для теста
-
-// Получить данные пользователя
-async function fetchUser() {
-    const response = await fetch(`http://localhost:8000/user/${user_id}`);
-    if (!response.ok) throw new Error("Ошибка загрузки данных");
-    const data = await response.json();
-    balance.value = data.balance;
-}
-
-// Получить инвентарь
-async function fetchInventory() {
-    const response = await fetch(`http://localhost:8000/inventory/${user_id}`);
-    inventory.value = await response.json();
-}
-
-// Купить кейс
-async function openCase(type) {
-    await fetch('/buy_case', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id })
-    });
-    await fetchUser();
-}
-
-// Продать предмет
-async function sellItem(item) {
-    await fetch('/sell_item', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id, item })
-    });
-    await fetchUser();
-    await fetchInventory();
-}
-
-// Инициализация
-onMounted(async () => {
-    await fetchUser();
-    await fetchInventory();
-});
-    </script>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body {
             font-family: 'Segoe UI', sans-serif;
@@ -181,21 +136,24 @@ onMounted(async () => {
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"></script>
+   <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"></script>
     <script>
-        const { createApp, ref } = Vue;
+        const { createApp, ref, onMounted } = Vue;
         
         createApp({
             setup() {
+                const API_URL = "http://localhost:8000"; // URL вашего FastAPI
+                const tg = window.Telegram.WebApp;
+                const user_id = tg.initDataUnsafe.user?.id;
+                
                 const view = ref('main');
-                const balance = ref(1000);
+                const balance = ref(0); // Начальное значение 0, будем получать из API
                 const inventory = ref([]);
                 const battleActive = ref(false);
                 const yourReward = ref(null);
                 const opponentReward = ref(null);
                 
                 // Инициализация Telegram WebApp
-                const tg = window.Telegram.WebApp;
                 tg.expand();
                 tg.BackButton.onClick(() => {
                     if (view.value !== 'main') {
@@ -204,6 +162,99 @@ onMounted(async () => {
                     }
                 });
                 
+                // Функция для запросов к API
+                async function apiRequest(url, method = 'GET', body = null) {
+                    try {
+                        const options = {
+                            method,
+                            headers: { 'Content-Type': 'application/json' }
+                        };
+                        if (body) options.body = JSON.stringify(body);
+                        
+                        const response = await fetch(`${API_URL}${url}`, options);
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        return await response.json();
+                    } catch (error) {
+                        console.error('API request failed:', error);
+                        tg.showPopup({
+                            title: 'Ошибка',
+                            message: 'Не удалось выполнить запрос к серверу',
+                            buttons: [{ type: 'close' }]
+                        });
+                        return null;
+                    }
+                }
+                
+                // Получить данные пользователя
+                async function fetchUser() {
+                    if (!user_id) return;
+                    const data = await apiRequest(`/user/${user_id}`);
+                    if (data) balance.value = data.balance;
+                }
+                
+                // Получить инвентарь
+                async function fetchInventory() {
+                    if (!user_id) return;
+                    const data = await apiRequest(`/inventory/${user_id}`);
+                    if (data) inventory.value = data;
+                }
+                
+                // Купить кейс
+                async function openCase(type) {
+                    if (!user_id) return;
+                    
+                    const casePrices = { stars: 500, nft: 750 };
+                    const result = await apiRequest('/buy_case', 'POST', { user_id });
+                    
+                    if (result) {
+                        balance.value = result.new_balance;
+                        
+                        // Здесь должна быть логика открытия кейса
+                        const cases = {
+                            stars: [
+                                { emoji: '🌟', name: 'Карточка Дурова', rarity: 'Легендарная', price: 2000 },
+                                { emoji: '🌟', name: 'Иван Глушков', rarity: 'Редкая', price: 800 }
+                            ],
+                            nft: [
+                                { emoji: '🖼️', name: 'Золотой стикер', rarity: 'Эпическая', price: 1500 }
+                            ]
+                        };
+                        
+                        const reward = cases[type][Math.floor(Math.random() * cases[type].length)];
+                        inventory.value.push(reward);
+                        
+                        if (view.value === 'battle') {
+                            yourReward.value = reward;
+                        } else {
+                            tg.showPopup({
+                                title: 'Поздравляем!',
+                                message: `Вы получили: ${reward.name} (${reward.rarity})`,
+                                buttons: [{ type: 'close' }]
+                            });
+                        }
+                    }
+                }
+                
+                // Продать предмет
+                async function sellItem(item) {
+                    if (!user_id) return;
+                    const result = await apiRequest('/sell_item', 'POST', { 
+                        user_id, 
+                        item: {
+                            name: item.name,
+                            price: item.price
+                        }
+                    });
+                    
+                    if (result) {
+                        balance.value = result.new_balance;
+                        await fetchInventory(); // Обновляем инвентарь
+                    }
+                }
+                
+                // Остальные функции (switchView, startBattle) остаются без изменений
                 function switchView(newView) {
                     view.value = newView;
                     if (newView !== 'main') {
@@ -213,51 +264,17 @@ onMounted(async () => {
                     }
                 }
                 
-                function openCase(type) {
-                    // В реальном приложении здесь будет запрос к бэкенду
-                    const cases = {
-                        stars: [
-                            { emoji: '🌟', name: 'Карточка Дурова', rarity: 'Легендарная', price: 2000 },
-                            { emoji: '🌟', name: 'Иван Глушков', rarity: 'Редкая', price: 800 }
-                        ],
-                        nft: [
-                            { emoji: '🖼️', name: 'Золотой стикер', rarity: 'Эпическая', price: 1500 }
-                        ]
-                    };
-                    
-                    const reward = cases[type][Math.floor(Math.random() * cases[type].length)];
-                    
-                    // Обновляем баланс и инвентарь
-                    const casePrices = { stars: 500, nft: 750 };
-                    balance.value -= casePrices[type];
-                    inventory.value.push(reward);
-                    
-                    // Если это баттл - сохраняем награду
-                    if (view.value === 'battle') {
-                        yourReward.value = reward;
-                        // Здесь будет логика проверки результата баттла
-                    } else {
-                        // Показываем попап с выигрышем
-                        tg.showPopup({
-                            title: 'Поздравляем!',
-                            message: `Вы получили: ${reward.name} (${reward.rarity})`,
-                            buttons: [{ type: 'close' }]
-                        });
-                    }
-                }
-                
                 function startBattle(type) {
                     battleActive.value = true;
                     yourReward.value = null;
                     opponentReward.value = null;
-                    
-                    // В реальном приложении здесь будет подключение к matchmaking
                 }
                 
-                function sellItem(item) {
-                    balance.value += item.price;
-                    inventory.value = inventory.value.filter(i => i !== item);
-                }
+                // Инициализация при загрузке
+                onMounted(async () => {
+                    await fetchUser();
+                    await fetchInventory();
+                });
                 
                 return {
                     view,
