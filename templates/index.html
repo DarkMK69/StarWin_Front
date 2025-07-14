@@ -4,7 +4,52 @@
     <title>NFT Stars Battle</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://telegram.org/js/telegram-web-app.js">
+        // Внутри setup() Vue 3:
+const tg = window.Telegram.WebApp;
+const user_id = tg.initDataUnsafe.user?.id || 123; // Для теста
+
+// Получить данные пользователя
+async function fetchUser() {
+    const response = await fetch(`http://localhost:8000/user/${user_id}`);
+    if (!response.ok) throw new Error("Ошибка загрузки данных");
+    const data = await response.json();
+    balance.value = data.balance;
+}
+
+// Получить инвентарь
+async function fetchInventory() {
+    const response = await fetch(`http://localhost:8000/inventory/${user_id}`);
+    inventory.value = await response.json();
+}
+
+// Купить кейс
+async function openCase(type) {
+    await fetch('/buy_case', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id })
+    });
+    await fetchUser();
+}
+
+// Продать предмет
+async function sellItem(item) {
+    await fetch('/sell_item', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id, item })
+    });
+    await fetchUser();
+    await fetchInventory();
+}
+
+// Инициализация
+onMounted(async () => {
+    await fetchUser();
+    await fetchInventory();
+});
+    </script>
     <style>
         body {
             font-family: 'Segoe UI', sans-serif;
