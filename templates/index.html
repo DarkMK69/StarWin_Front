@@ -163,29 +163,17 @@
                 });
                 
                 // Функция для запросов к API
-                async function apiRequest(url, method = 'GET', body = null) {
-                    try {
-                        const options = {
-                            method,
-                            headers: { 'Content-Type': 'application/json' }
-                        };
-                        if (body) options.body = JSON.stringify(body);
-                        
-                        const response = await fetch(`${API_URL}${url}`, options);
-                        if (!response.ok) {
-                            throw new Error(`HTTP error! status: ${response.status}`);
-                        }
-                        return await response.json();
-                    } catch (error) {
-                        console.error('API request failed:', error);
-                        tg.showPopup({
-                            title: 'Ошибка',
-                            message: 'Не удалось выполнить запрос к серверу',
-                            buttons: [{ type: 'close' }]
-                        });
-                        return null;
-                    }
-                }
+               async function apiRequest(url, method = 'GET', body = null) {
+    const options = {
+        method,
+        headers: { 'Content-Type': 'application/json' }
+    };
+    if (body) options.body = JSON.stringify(body);
+    
+    const response = await fetch(`${API_URL}${url}`, options);
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    return await response.json();
+}
                 
                 // Получить данные пользователя
                 async function fetchUser() {
